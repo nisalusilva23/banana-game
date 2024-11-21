@@ -5,7 +5,7 @@ if (session_status() == PHP_SESSION_NONE) {
 }
 
 // Function to update score based on difficulty
-function updateScore($player_name, $difficulty) {
+function updateScore($player_email, $difficulty) {
     global $conn;
     $points = 0;
 
@@ -23,22 +23,26 @@ function updateScore($player_name, $difficulty) {
             $points = 0;
     }
 
-    $checkPlayer = "SELECT * FROM leaderboard WHERE player_name='$player_name'";
+    $checkPlayer = "SELECT * FROM users WHERE email='$player_email'";
     $result = $conn->query($checkPlayer);
 
     if ($result->num_rows > 0) {
         $row = $result->fetch_assoc();
         $newScore = $row['score'] + $points;
-        $updateQuery = "UPDATE leaderboard SET score='$newScore' WHERE player_name='$player_name'";
+        $updateQuery = "UPDATE users SET score='$newScore' WHERE email='$player_email'";
         $conn->query($updateQuery);
-    } else {
-        $insertQuery = "INSERT INTO leaderboard (player_name, score) VALUES ('$player_name', '$points')";
-        $conn->query($insertQuery);
+
+        if ($conn->affected_rows > 0) {
+             echo "Score updated successfully";
+             } else {
+                 echo "Failed to update score";
+                 }
     }
 }
 
-//user's email is stored in session after login
-$player_name = $_SESSION['email'];
+
+// User's email is stored in session after login
+$player_email = $_SESSION['email'];
 
 $apiUrl = "http://marcconrad.com/uob/banana/api.php?out=json";
 $apiResponse = @file_get_contents($apiUrl);
@@ -81,7 +85,6 @@ switch ($difficulty) {
     <title>WELCOME TO PEEL THE PUZZLE</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
-
         .home-btn {
             position: absolute;
             top: 20px;
@@ -255,7 +258,7 @@ switch ($difficulty) {
             const xhr = new XMLHttpRequest();
             xhr.open("POST", "update_score.php", true);
             xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-            xhr.send("difficulty=" + difficulty + "&player_name=" + "<?php echo $player_name; ?>");
+            xhr.send("difficulty=" + difficulty + "&player_name=" + "<?php echo $player_email; ?>");
         }
 
         // Timer countdown

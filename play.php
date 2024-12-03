@@ -9,7 +9,7 @@ if (session_status() == PHP_SESSION_NONE) {
 
 // Function to update score based on difficulty
 function updateScore($player_name, $difficulty) {
-    global $conn;  // Use the global database connection
+    global $conn; // Use the global database connection
 
     $points = 0; // Initialize points variable
 
@@ -33,7 +33,7 @@ function updateScore($player_name, $difficulty) {
 
     // If player exists, update their score, otherwise insert a new entry
     if ($result->num_rows > 0) {
-        $row = $result->fetch_assoc();  // Fetch the existing player's data
+        $row = $result->fetch_assoc(); // Fetch the existing player's data
         $newScore = $row['score'] + $points; // Calculate new score
         $updateQuery = "UPDATE leaderboard SET score='$newScore' WHERE player_name='$player_name'"; // Update query
         $conn->query($updateQuery); // Execute the update query
@@ -78,7 +78,7 @@ if ($apiResponse !== false) {
 $difficulty = isset($_GET['difficulty']) ? $_GET['difficulty'] : 'easy';
 
 // Set the default time limit for the game (30 seconds for easy difficulty)
-$timeLimit = 30; 
+$timeLimit = 30;
 
 // Adjust the time limit based on the selected difficulty
 switch ($difficulty) {
@@ -91,7 +91,6 @@ switch ($difficulty) {
 }
 ?>
 
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -100,7 +99,6 @@ switch ($difficulty) {
     <title>WELCOME TO PEEL THE PUZZLE</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
-
         .home-btn {
             position: absolute;
             top: 20px;
@@ -154,12 +152,12 @@ switch ($difficulty) {
         .number-bar {
             display: flex;
             justify-content: center;
-            margin-top: 20px;
+            margin-top: 10px;
         }
 
         .number-button {
-            width: 50px;
-            height: 50px;
+            width: 30px;
+            height: 30px;
             margin: 0 5px; 
             background-color: #f0a500;
             color: white;
@@ -196,6 +194,7 @@ switch ($difficulty) {
             font-weight: bold;
             transition: background-color 0.3s ease;
         }
+
         .logout-btn:hover {
             background-color: #d18e00;
         }
@@ -215,100 +214,118 @@ switch ($difficulty) {
             font-size: 1.5rem;
             color: #fff;
         }
+        .next-game-btn {
+            position: relative;
+            display: inline-block;
+            margin-top: 20px;
+            margin-left: 10px;
+            padding: 10px 20px;
+            background-color: #f0a500;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            transition: background-color 0.3s ease, transform 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .next-game-btn:hover {
+            background-color: #d18e00;
+            transform: scale(1.1);
+        }
+
     </style>
 </head>
 <body>
-    <!-- Heading for the game -->
     <h1>Welcome to Peel the Puzzle</h1>
-
-    <!-- Logout link -->
     <a href="logout.php" class="logout-btn">Logout</a>
-    
-    <!-- Home button with an icon -->
     <a href="homepage.php" class="home-btn"><i class="fas fa-home"></i> Home</a>
 
-    <!-- Check if the puzzle question image is available -->
     <?php if ($questionImage): ?>
-        <!-- Display the puzzle image -->
-        <img src="<?php echo htmlspecialchars($questionImage); ?>" alt="Puzzle Image">
-    <?php else: ?>
-        <!-- Display error message if puzzle data couldn't be loaded -->
-        <p>Error loading puzzle data.</p>
-    <?php endif; ?>
+    <!-- Display the puzzle question image if available -->
+    <img src="<?php echo htmlspecialchars($questionImage); ?>" alt="Puzzle Image">
+<?php else: ?>
+    <!-- Show an error message if puzzle data couldn't be loaded -->
+    <p>Error loading puzzle data.</p>
+<?php endif; ?>
 
-    <!-- Timer display showing the remaining time -->
-    <div class="timer">Time left: <span id="time-limit"><?php echo $timeLimit; ?></span>s</div>
+<!-- Timer display showing the remaining time -->
+<div class="timer">Time left: <span id="time-limit"><?php echo $timeLimit; ?></span>s</div>
 
-    <!-- Instructions for the game -->
-    <p class="instructions">Select the correct number within <span id="time-limit"><?php echo $timeLimit; ?></span> seconds.</p>
+<!-- Instructions for the player -->
+<p class="instructions">Select the correct number within <span id="time-limit"><?php echo $timeLimit; ?></span> seconds.</p>
 
-    <div class="number-bar">
-        <!-- Loop to display number buttons from 0 to 9 -->
-        <?php for ($i = 0; $i <= 9; $i++): ?>
-            <button class="number-button" onclick="checkGuess(<?php echo $i; ?>)">
-                <?php echo $i; ?>
-            </button>
-        <?php endfor; ?>
-    </div>
+<!-- Number buttons for player to select their guess -->
+<div class="number-bar">
+    <?php for ($i = 0; $i <= 9; $i++): ?>
+        <!-- Create a button for each number from 0 to 9 -->
+        <button class="number-button" onclick="checkGuess(<?php echo $i; ?>)"><?php echo $i; ?></button>
+    <?php endfor; ?>
+</div>
 
-    <!-- Display the result message (correct/wrong) -->
-    <p id="result"></p>
+<!-- Area to display the result of the player's guess -->
+<p id="result"></p>
 
-    <script>
-        // JavaScript to handle game logic and timer
-        const solution = <?php echo isset($solution) ? $solution : 'null'; ?>;
-        const resultDisplay = document.getElementById("result"); // Element to display result
-        const timeLimit = <?php echo $timeLimit; ?>; // Time limit for the puzzle
-        let timeLeft = timeLimit; // Initialize the countdown timer
+<script>
+    // The correct solution fetched from the API
+    const solution = <?php echo isset($solution) ? $solution : 'null'; ?>;
+    // DOM element to display results (correct/wrong message)
+    const resultDisplay = document.getElementById("result");
+    // Time limit for the current puzzle
+    const timeLimit = <?php echo $timeLimit; ?>;
+    // Countdown timer variable
+    let timeLeft = timeLimit;
 
-        // Function to check if the player's guess is correct
-        function checkGuess(guess) {
-            // If solution is null, show an error message
-            if (solution === null) {
-                resultDisplay.innerHTML = "Error loading game data. Please try again later.";
-                return;
-            }
+    // Timer countdown logic, decreases time every second
+    const timer = setInterval(() => {
+        timeLeft--; // Decrement the timer
+        document.getElementById('time-limit').innerText = timeLeft; // Update timer display
 
-            // Check if the guess is correct
-            if (guess === solution) {
-                resultDisplay.innerHTML = "Correct! Loading next game...";
+        // If time runs out, stop the timer and show a "time's up" message
+        if (timeLeft <= 0) {
+            clearInterval(timer); // Stop the timer
+            resultDisplay.innerHTML = "Time's up!";
+            showNextGameButton(); // Show the "Next Game" button
+        }
+    }, 1000); // Runs every 1 second
 
-                // Update the score using AJAX call
-                updateScoreAjax('<?php echo $difficulty; ?>');
-                
-                // Fetch a new puzzle by reloading the page after 0.5 seconds
-                setTimeout(() => {
-                    location.reload();
-                }, 500); 
-            } else {
-                // If guess is wrong, show the incorrect message
-                resultDisplay.innerHTML = "Wrong guess. Try again!";
-            }
+    // Function to check if the player's guess is correct
+    function checkGuess(guess) {
+        if (solution === null) {
+            // If no solution is provided, show an error
+            resultDisplay.innerHTML = "Error loading game data.";
+            return;
         }
 
-        // Function to send the score update to the server using AJAX
-        function updateScoreAjax(difficulty) {
-            const xhr = new XMLHttpRequest();
-            xhr.open("POST", "update_score.php", true); // Open a POST request
-            xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded"); // Set content type
-            // Send the player name and difficulty level to the server
-            xhr.send("difficulty=" + difficulty + "&player_name=" + "<?php echo $player_name; ?>");
+        // If the guess matches the solution
+        if (guess === solution) {
+            clearInterval(timer); // Stop the timer
+            resultDisplay.innerHTML = "Correct!"; // Show a success message
+            updateScoreAjax('<?php echo $difficulty; ?>'); // Update the score via AJAX
+            showNextGameButton(); // Show the "Next Game" button
+        } else {
+            // If the guess is incorrect
+            resultDisplay.innerHTML = "Try again."; // Show an error message
         }
+    }
 
-        // Timer countdown that decreases every second
-        const timer = setInterval(() => {
-            timeLeft--; // Decrease the time left by 1
-            document.getElementById('time-limit').innerText = timeLeft; // Update the displayed time
+    // Function to send the player's score to the server using AJAX
+    function updateScoreAjax(difficulty) {
+        const xhr = new XMLHttpRequest(); // Create an XMLHttpRequest object
+        xhr.open("POST", "update_score.php", true); // Set up a POST request to the server
+        xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded"); // Set the request header
+        // Send the difficulty level and player name to the server
+        xhr.send(`difficulty=${difficulty}&player_name=${"<?php echo $player_name; ?>"}`);
+    }
 
-            // When time reaches 0, stop the timer and reload the page
-            if (timeLeft <= 0) {
-                clearInterval(timer); // Stop the countdown
-                resultDisplay.innerHTML = "Time's up! Loading next game..."; // Display time-up message
-                setTimeout(() => {
-                    location.reload(); // Reload the page after 0.5 seconds for next puzzle
-                }, 500); 
-            }
-        }, 1000); // Set the interval to 1 second (1000 milliseconds)
-    </script>
+    // Function to display the "Next Game" button
+    function showNextGameButton() {
+        const button = document.createElement("a"); // Create an anchor element for the button
+        button.textContent = "Next Game";
+        button.href = ""; // Set the href to reload the page for the next game
+        button.className = "next-game-btn"; // Add the CSS class for styling
+        resultDisplay.appendChild(button); // Add the button to the result display area
+    }
+</script>
 </body>
 </html>
